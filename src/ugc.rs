@@ -417,6 +417,52 @@ impl <Manager> UGC<Manager> {
             })
         }
     }
+
+    pub fn add_dependency<F>(&self, parent_id: PublishedFileId, child_id: PublishedFileId, mut cb: F)
+        where F: FnMut(Result<(), SteamError>) + 'static + Send
+    {
+        unsafe {
+            let api_call = sys::SteamAPI_ISteamUGC_AddDependency(
+                self.ugc,
+                parent_id.0,
+                child_id.0,
+            );
+            register_call_result::<sys::AddUGCDependencyResult_t, _, _>(
+                &self.inner, api_call, CALLBACK_BASE_ID + 12,
+                move |v, io_error| {
+                    cb(if io_error {
+                        Err(SteamError::IOFailure)
+                    } else if v.m_eResult != sys::EResult::k_EResultOK {
+                        Err(v.m_eResult.into())
+                    } else {
+                        Ok(())
+                    })
+            });
+        }
+    }
+
+    pub fn remove_dependency<F>(&self, parent_id: PublishedFileId, child_id: PublishedFileId, mut cb: F)
+        where F: FnMut(Result<(), SteamError>) + 'static + Send
+    {
+        unsafe {
+            let api_call = sys::SteamAPI_ISteamUGC_RemoveDependency(
+                self.ugc,
+                parent_id.0,
+                child_id.0,
+            );
+            register_call_result::<sys::RemoveUGCDependencyResult_t, _, _>(
+                &self.inner, api_call, CALLBACK_BASE_ID + 12,
+                move |v, io_error| {
+                    cb(if io_error {
+                        Err(SteamError::IOFailure)
+                    } else if v.m_eResult != sys::EResult::k_EResultOK {
+                        Err(v.m_eResult.into())
+                    } else {
+                        Ok(())
+                    })
+            });
+        }
+    }
 }
 
 /// A handle to update a published item
